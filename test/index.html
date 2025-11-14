@@ -295,7 +295,9 @@
   </div>
 
   <script>
-    const API_URL = 'http://localhost:3000/api/search-address';
+    // 배포된 서버 URL 사용
+    const API_BASE_URL = 'https://capellar-juso-search-api.onrender.com';
+    
     const keywordInput = document.getElementById('keyword');
     const searchBtn = document.getElementById('searchBtn');
     const loading = document.getElementById('loading');
@@ -315,37 +317,27 @@
       searchBtn.disabled = true;
 
       try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ keyword })
-        });
-
+        // GET 방식으로 변경
+        const response = await fetch(`${API_BASE_URL}/search?keyword=${encodeURIComponent(keyword)}`);
         const data = await response.json();
 
         if (data.success) {
-          result.innerHTML = `
-            <div class="result-title">✓ 검색 완료</div>
+          // 여러 결과를 보여주도록 수정
+          const resultsHtml = data.results.map((addr, index) => `
             <div class="result-item">
-              <div class="result-label">도로명주소</div>
-              <div class="result-value">${data.roadAddr}</div>
-            </div>
-            <div class="result-item">
-              <div class="result-label">우편번호</div>
-              <div class="result-value">${data.zipNo}</div>
-            </div>
-            ${data.bdNm ? `
-              <div class="result-item">
-                <div class="result-label">건물명</div>
-                <div class="result-value">${data.bdNm}</div>
+              <div class="result-label">${index + 1}</div>
+              <div class="result-value">
+                <div><strong>도로명:</strong> ${addr.roadAddr}</div>
+                <div><strong>지번:</strong> ${addr.jibunAddr}</div>
+                <div><strong>우편번호:</strong> ${addr.zipNo}</div>
+                ${addr.bdNm ? `<div><strong>건물명:</strong> ${addr.bdNm}</div>` : ''}
               </div>
-            ` : ''}
-            <div class="message-box">
-              <div class="message-label">음성 응답 메시지</div>
-              <div class="message-text">${data.message}</div>
             </div>
+          `).join('');
+
+          result.innerHTML = `
+            <div class="result-title">✓ ${data.results.length}개의 주소를 찾았습니다</div>
+            ${resultsHtml}
           `;
           result.className = 'result show success';
         } else {
@@ -355,6 +347,7 @@
           result.className = 'result show error';
         }
       } catch (error) {
+        console.error('Error:', error);
         result.innerHTML = `
           <div class="error-message">서버 연결에 실패했습니다.<br>서버가 실행 중인지 확인해주세요.</div>
         `;
